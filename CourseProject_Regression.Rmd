@@ -1,0 +1,71 @@
+---
+title: "Regression Courseproject"
+author: "M"
+date: "Tuesday, January 20, 2015"
+output: html_document
+---
+
+
+###Executive summary
+The aim of the following analysis was to answer the question if there there is an influence of the choosen transmission type of a car (automativ vs. manual) on its milage (miles/gallon). To answer this question I used the `mtcars`dataset that is available in R `data(mtcars)`.
+I tried to answer the question by doing some descriptive summary statistic and on the first view, it seems that with manual transmission the milage is higher. A simple regression analysis with the milage as dependent variable $Y$ and transmission as the independent variable $X$ also supports this hypothesis. But if we conrol also for the number of cylinders the effect of the transmission almost vanishes as it comes most partly from cars with four cylinders. For cars with 6 and more cylinders there seems no significant difference of the milage for the transmission type. So overall it cannot be said that the milage is in general higher or lower for a certain transmission type.
+
+
+###Data analysis
+First we load the data and look at a first short summary. When we further check the information that is available on the dataset `?mtcars`
+As we are interested in the transmission effect on the fuel consumption, we find that the dataset contains the variables **mpg** for the fuel consumption in Miles/gallon, a dummy variable **am** coded as (0=automatic, 1=manual) and several other measures. 
+
+```{r}
+data(mtcars)
+summary(mtcars[c('mpg','am')])
+aggregate(mpg ~ am, mtcars, mean)
+```
+From the first summary we see that the variables contain **`r ifelse(sum(is.na(mtcars)==0), "no", sum(is.na(mtcars)))`** missing values which is **`r ifelse(sum(is.na(mtcars)==0), "nice","not nice")`**. Futhermore we can already read the share of the manual transmission in the dataset, as it is a dummy variable the mean of **`r round(mean(mtcars$am),2)`** says that  **`r round(mean(mtcars$am),2)*100 `** % of cars are with manual transmission so their share is *`r ifelse(mean(mtcars$am)>0.5, "more than", ifelse(mean(mtcars$am)==0.5, "the same as", "less than"))`*  the ones with automatic transmission. This is the same result as we saw earlier when we aggregated the milage mean by transmission type. 
+
+Now we just plot the two variables of interest and create a simple regression line for illustration. We should also state on this point that we have only a few observations, so any analysis based on this must be consired as having a small sample bias. 
+
+###Regression analysis
+```{r }
+fit <- lm(mpg ~ am, data=mtcars)
+summary(fit)
+```
+
+The summary of the simple regression tells us that there is a "level" effect of the manual transmission on the milage. The average milage of the automatic transmission is represented by the constant or intercept and is $\hat\beta_{0}=$ `r fit$coefficients[1]`. The milage of cars with manual transmission is significantly higher with $\hat\beta_{1}=$ `r fit$coefficients[2]` resulting in an average of $\hat\beta_{0} + \hat\beta_{1}$ = `r fit$coefficients[2] + fit$coefficients[1]` Miles per Gallon for manual transmission
+
+From the left plot (see Figure 1) we can see that the residuals sum to zero on average and also the Normal Q-Q plot on the right illustrates that the standardized residuals seem to be along the theoretical quantiles of the normal distribution. But the left plot shows also that the prediction is  just the average of each group revealing that the prediction is actually not very good. There seems to be more information necessary to explain the strong variation within the transmission types.
+
+If we control for cylinders with variable **cyl** (see Figure 2) as one possible way to address the strong variation,  we find that high milage are mostly found for manual cars with four cylinders. Furthermore we also see that most of the manual cars have four cylinders, while for the other cylinder sizes the milage doesn't differ so much at a lower level. And if we include the cylinders also into the regression we see that the effect of the transmission type vanishes and is only significant on the 10% level. If we look at the confidence intervals we further see that zero is included in the 95% interval of the transmission parameter so we cannot exclude that the effect will be zero. So we could illustrate that if we include another variable the supposed effect can be diminished.
+
+```{r }
+fit2 <- lm(mpg ~ am + cyl, data=mtcars)
+confint(fit2)
+```
+
+
+
+
+###Appendix
+
+Figure1
+```{r Figure1, fig.height=5, fig.width=10 }
+par(mfrow=c(1,2))
+plot(fit,1)
+plot(fit,2)
+```
+
+
+Figure2
+```{r Figure2, fig.height=4, fig.width=4 }
+am_fac  <- factor(mtcars$am, levels=c(0,1), labels=c("A", "M"))
+cyl_fac <- factor(mtcars$cyl, levels=c(4,6,8), labels=c("4","6","8"))
+boxplot(mpg~ am_fac*cyl_fac,
+        data=mtcars,
+        main = "Miles/Gallon by Cyl and Transmission",
+        xlab = "Transmission",        
+        col= c("red", "blue") )    
+```
+
+
+
+
+
